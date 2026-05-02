@@ -1,0 +1,76 @@
+.TITLE "git masterclass"
+
+.DIV "1. THE CORE CONCEPT"
+Git is a **Distributed Version Control System**. This means every developer has a full copy of the project history on their own machine. It is fast, reliable, and designed to handle everything from small projects to the Linux kernel.
+
+.DIV "2. THE WORKFLOW"
+The standard git workflow follows these steps:
+
+**Step A: Modify Files**
+You make changes to your code in the __working directory__.
+
+**Step B: Stage Changes**
+You use `git add` to tell git which changes you want to include in your next snapshot.
+
+**Step C: Commit**
+You use `git commit` to permanently store that snapshot in your local history.
+
+.DIV "3. BRANCHING"
+Branches are the "killer feature" of git. They are incredibly lightweight.
+
+To create a new branch:
+**git branch feature-name**
+
+To switch to that branch:
+**git switch feature-name**
+
+Working on a branch allows you to experiment without breaking the __main__ code. When you are done, you can merge your work back.
+
+.DIV "4. MERGING"
+Merging combines work from two different branches.
+
+1. Switch to the branch you want to merge *into* (usually main).
+2. Run: **git merge feature-name**
+
+If two people changed the same line, you might get a __merge conflict__. Don't panic! Git will mark the file, and you just need to choose which version to keep.
+
+.DIV "5. REMOTE REPOS"
+To collaborate, you connect your local repo to a service like GitHub.
+
+**origin** is the default name for your remote server.
+**upstream** is often used for the original repo you "forked" from.
+
+Commands:
+- `git fetch`: Pull data from remote but don't merge it.
+- `git pull`: Fetch and merge in one go.
+- `git push`: Send your local commits to the server.
+
+.DIV "6. UNDOING THINGS"
+Mistakes happen. Git has several ways to fix them:
+
+**git restore <file>**
+Discards changes in your working directory that haven't been staged yet.
+
+**git reset --soft HEAD~1**
+Undo the last commit but keep your changes in the staging area.
+
+**git commit --amend**
+Change the message or contents of the very last commit you made.
+
+.DIV "7. STASHING"
+If you need to switch branches but aren't ready to commit, you can "hide" your changes:
+
+**git stash**
+This clears your working directory and saves changes on a "stack".
+
+**git stash pop**
+This brings your hidden changes back so you can continue working.
+
+.DIV "8. SUMMARY"
+Mastering git takes time. Focus on the basics first:
+- Always __git status__ before you act.
+- Write clear, present-tense commit messages.
+- Commit often, but only when the code works!
+- Don't be afraid to experiment with branches.
+
+Happy coding!
