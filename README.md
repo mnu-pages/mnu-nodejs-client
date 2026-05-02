@@ -9,7 +9,7 @@ It's like `man` or `less`, but focused on getting you the answers you need witho
 To install `mnu` globally on your system, run:
 
 ```bash
-npm install -g .
+npm install -g mnu-docs
 ```
 
 ## How to Use It
