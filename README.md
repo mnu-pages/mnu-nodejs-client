@@ -1,6 +1,6 @@
 # mnu
 
-Welcome to `mnu`! We believe documentation should be simple, scannable, and easy on the eyes. This is a terminal document client designed specifically for the `.mn` format.
+Welcome to `mnu`! We believe documentation should be simple, scannable, and easy on the eyes. This is a Node.js terminal document client designed specifically for the `.mn` format.
 
 It's like `man` or `less`, but focused on getting you the answers you need without the wall of text.
 

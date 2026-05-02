@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "preferGlobal": true,
-  "description": "an mnu pages client for cli documentation.",
+  "description": "a nodejs mnu pages client for cli documentation.",
   "homepage": "https://github.com/mnu-pages/mnu-node-client",
   "main": "src/core/client.js",
   "bin": {
