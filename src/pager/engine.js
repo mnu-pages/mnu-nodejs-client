@@ -11,72 +11,62 @@ export class PagerEngine {
     this.size = screen.getSize();
   }
 
-  /**
-   * Refreshes the terminal size.
-   */
   updateSize() {
     this.size = screen.getSize();
     this.clampScroll();
   }
 
-  /**
-   * Clamps scroll position to valid range.
-   */
   clampScroll() {
     const maxScroll = Math.max(0, this.lines.length - (this.size.height - 1));
-    if (this.scrollPos > maxScroll) {
-      this.scrollPos = maxScroll;
-    }
-    if (this.scrollPos < 0) {
-      this.scrollPos = 0;
-    }
+    if (this.scrollPos > maxScroll) this.scrollPos = maxScroll;
+    if (this.scrollPos < 0) this.scrollPos = 0;
   }
 
-  /**
-   * Scrolls down by N lines.
-   */
   scrollDown(n = 1) {
+    const oldPos = this.scrollPos;
     this.scrollPos += n;
     this.clampScroll();
-    this.draw();
+    if (oldPos !== this.scrollPos) this.draw();
   }
 
-  /**
-   * Scrolls up by N lines.
-   */
   scrollUp(n = 1) {
+    const oldPos = this.scrollPos;
     this.scrollPos -= n;
     this.clampScroll();
-    this.draw();
+    if (oldPos !== this.scrollPos) this.draw();
   }
 
-  /**
-   * Scrolls to top.
-   */
   scrollToTop() {
+    if (this.scrollPos === 0) return;
     this.scrollPos = 0;
     this.draw();
   }
 
-  /**
-   * Scrolls to bottom.
-   */
   scrollToBottom() {
-    this.scrollPos = Math.max(0, this.lines.length - (this.size.height - 1));
+    const newPos = Math.max(0, this.lines.length - (this.size.height - 1));
+    if (this.scrollPos === newPos) return;
+    this.scrollPos = newPos;
     this.draw();
   }
 
   /**
-   * Draws the current viewport.
+   * Renders the viewport by explicitly positioning each line.
+   * This is the most stable method and prevents "doubling" artifacts.
    */
   draw() {
-    screen.clear();
-    const viewportHeight = this.size.height - 1; // Save 1 row for footer
+    const viewportHeight = this.size.height - 1;
     const visibleLines = this.lines.slice(this.scrollPos, this.scrollPos + viewportHeight);
+    
+    // Clear screen once before drawing lines
+    screen.clear();
 
-    for (let i = 0; i < visibleLines.length; i++) {
-      screen.moveCursor(i + 1, 1);
-      process.stdout.write(visibleLines[i]);
+    for (let i = 0; i < viewportHeight; i++) {
+      const line = visibleLines[i];
+      if (line !== undefined) {
+        screen.moveCursor(i + 1, 1);
+        // \x1b[K clears to end of line to prevent ghosting
+        process.stdout.write(line + '\x1b[K');
+      }
     }
 
     renderFooter(this.size.width, this.size.height, this.pageName);

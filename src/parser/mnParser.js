@@ -9,43 +9,33 @@
 export function parse(rawContent) {
   const lines = rawContent.split(/\r?\n/);
   const document = [];
-  let currentTextBlock = [];
-
-  const flushTextBlock = () => {
-    if (currentTextBlock.length > 0) {
-      document.push({ type: 'TEXT', content: currentTextBlock.join(' ') });
-      currentTextBlock = [];
-    }
-  };
 
   for (let i = 0; i < lines.length; i++) {
     const rawLine = lines[i];
     const trimmedLine = rawLine.trim();
 
     if (trimmedLine.startsWith('.TITLE "')) {
-      flushTextBlock();
       const match = trimmedLine.match(/^\.TITLE\s+"([^"]+)"/);
       if (match) {
         document.push({ type: 'TITLE', content: match[1] });
       }
     } else if (trimmedLine.startsWith('.DIV "')) {
-      flushTextBlock();
       const match = trimmedLine.match(/^\.DIV\s+"([^"]+)"/);
       if (match) {
         document.push({ type: 'DIV', content: match[1] });
       }
     } else if (trimmedLine === '') {
-      flushTextBlock();
-      // Only add a SPACE if the previous element wasn't already a SPACE or a DIV (which adds its own space)
+      // Add a SPACE if the previous element wasn't already a SPACE
       if (document.length > 0 && document[document.length - 1].type !== 'SPACE') {
         document.push({ type: 'SPACE', content: '' });
       }
     } else {
-      // It's normal body text. Add to current block to allow reflowing.
-      currentTextBlock.push(trimmedLine);
+      // Treat each line as its own text block.
+      // This preserves lists and manual formatting while still allowing
+      // the renderer to wrap lines that are too long.
+      document.push({ type: 'TEXT', content: trimmedLine });
     }
   }
 
-  flushTextBlock();
   return document;
 }

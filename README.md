@@ -20,9 +20,10 @@ Using `mnu` is straightforward. Just tell it which category and page you want to
 mnu category:page
 ```
 
-**Try this example:**
+**Try these examples:**
 ```bash
 mnu cli:git
+mnu help
 ```
 
 ## The .mn Syntax
@@ -42,6 +43,7 @@ Once you're in a document, you can move around using familiar keys:
 - `k` or `ArrowUp`: Scroll up
 - `g`: Jump to the very top
 - `G`: Jump to the very bottom
+- `h`: Show help page
 - `q`: Quit and get back to your shell
 
 ## Contributing

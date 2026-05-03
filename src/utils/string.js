@@ -1,12 +1,15 @@
 'use strict';
 
+const ANSI_REGEX = /\x1b\[[0-9;]*m/g;
+const TOKEN_REGEX = /(\x1b\[[0-9;]*m)|(.)/gs;
+
 /**
  * Strips ANSI escape codes from a string to get its visible length.
  * @param {string} text 
  * @returns {string}
  */
 export function stripAnsi(text) {
-  return text.replace(/\x1b\[[0-9;]*m/g, '');
+  return text.replace(ANSI_REGEX, '');
 }
 
 /**
@@ -19,11 +22,11 @@ export function stripAnsi(text) {
 export function wrapText(text, width) {
   if (width <= 0) return [text];
 
-  // Regex to match either an ANSI sequence or a single character
-  const tokenRegex = /(\x1b\[[0-9;]*m)|(.)/gs;
   const tokens = [];
   let match;
-  while ((match = tokenRegex.exec(text)) !== null) {
+  // Reset regex index for global match
+  TOKEN_REGEX.lastIndex = 0;
+  while ((match = TOKEN_REGEX.exec(text)) !== null) {
     tokens.push({
       value: match[0],
       isAnsi: !!match[1],
@@ -32,59 +35,59 @@ export function wrapText(text, width) {
   }
 
   const lines = [];
-  let currentLine = '';
+  let currentLineText = '';
   let currentVisibleLength = 0;
   let activeStyle = '';
-  let lastSpaceIndex = -1;
-  let lastSpaceVisibleLength = 0;
-  let lastSpaceActiveStyle = '';
+  
+  let startTokenIndex = 0;
+  let lastSpaceTokenIndex = -1;
 
   for (let i = 0; i < tokens.length; i++) {
     const token = tokens[i];
 
     if (token.isAnsi) {
-      if (token.value === '\x1b[0m') {
-        activeStyle = '';
-      } else {
-        activeStyle = token.value;
-      }
-      currentLine += token.value;
+      activeStyle = (token.value === '\x1b[0m') ? '' : token.value;
+      currentLineText += token.value;
       continue;
     }
 
-    // It's a visible character
     if (currentVisibleLength >= width) {
-      // Need to wrap
-      if (lastSpaceIndex !== -1 && !token.isSpace) {
-        // Wrap at the last space
-        const spaceLine = currentLine.substring(0, lastSpaceIndex);
-        lines.push(spaceLine + '\x1b[0m');
+      if (lastSpaceTokenIndex !== -1 && !token.isSpace) {
+        let line = '';
+        let lineStyle = '';
+        for (let j = startTokenIndex; j <= lastSpaceTokenIndex; j++) {
+          const t = tokens[j];
+          line += t.value;
+          if (t.isAnsi) {
+            lineStyle = (t.value === '\x1b[0m') ? '' : t.value;
+          }
+        }
+        lines.push(line + '\x1b[0m');
         
-        // Restart from after the space
-        currentLine = lastSpaceActiveStyle;
+        i = lastSpaceTokenIndex;
+        startTokenIndex = i + 1;
+        currentLineText = lineStyle;
         currentVisibleLength = 0;
-        i = lastSpaceIndex; // Loop will increment i, so it will start at lastSpaceIndex + 1
-        lastSpaceIndex = -1;
-        activeStyle = lastSpaceActiveStyle;
+        activeStyle = lineStyle;
+        lastSpaceTokenIndex = -1;
       } else {
-        // No space to wrap at, or we are at a space. Hard wrap.
-        lines.push(currentLine + '\x1b[0m');
-        currentLine = activeStyle + token.value;
+        lines.push(currentLineText + '\x1b[0m');
+        currentLineText = activeStyle + token.value;
         currentVisibleLength = 1;
+        startTokenIndex = i;
+        lastSpaceTokenIndex = -1;
       }
     } else {
       if (token.isSpace) {
-        lastSpaceIndex = i;
-        lastSpaceVisibleLength = currentVisibleLength;
-        lastSpaceActiveStyle = activeStyle;
+        lastSpaceTokenIndex = i;
       }
-      currentLine += token.value;
+      currentLineText += token.value;
       currentVisibleLength++;
     }
   }
 
-  if (currentLine) {
-    lines.push(currentLine + '\x1b[0m');
+  if (currentLineText && stripAnsi(currentLineText).trim() !== '') {
+    lines.push(currentLineText + '\x1b[0m');
   }
 
   return lines;
@@ -97,7 +100,7 @@ export function wrapText(text, width) {
  * @returns {string}
  */
 export function padLeft(text, padding) {
-  return ' '.repeat(padding) + text;
+  return padding <= 0 ? text : ' '.repeat(padding) + text;
 }
 
 /**

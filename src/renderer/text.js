@@ -3,18 +3,21 @@
 import { wrapText, padLeft, applyFormatting } from '../utils/string.js';
 
 /**
- * Renders a normal text element
+ * Renders a normal text element.
+ * Ensures a minimum content width and robust padding.
  * @param {string} text 
  * @param {number} width 
  * @returns {string[]}
  */
 export function renderText(text, width) {
-  const leftPadding = Math.floor(width * 0.10);
-  const rightPadding = Math.floor(width * 0.10);
-  const contentWidth = width - leftPadding - rightPadding;
+  // Use responsive padding that guarantees at least 20 chars of content
+  // if width permits, or fills available space on tiny screens.
+  const idealPadding = Math.floor(width * 0.10);
+  const leftPadding = width < 40 ? Math.min(idealPadding, 2) : idealPadding;
+  const rightPadding = leftPadding;
+  
+  const contentWidth = Math.max(width - leftPadding - rightPadding, Math.min(width, 20));
 
-  // Apply formatting BEFORE wrapping so that formatted spans
-  // can be correctly handled across multiple lines by wrapText
   const formatted = applyFormatting(text);
   const wrapped = wrapText(formatted, contentWidth);
   

@@ -8,6 +8,7 @@ import { screen } from '../terminal/screen.js';
 import { PagerEngine } from '../pager/engine.js';
 import { initKeys, cleanupKeys } from '../terminal/keys.js';
 import { handleInput } from '../pager/input.js';
+import { helpContent } from './helpContent.js';
 
 /**
  * Main application class
@@ -15,6 +16,8 @@ import { handleInput } from '../pager/input.js';
 export class MnuClient {
   constructor() {
     this.engine = null;
+    this.isQuitting = false;
+    this.currentElements = null;
   }
 
   /**
@@ -22,40 +25,68 @@ export class MnuClient {
    * @param {string} input 
    */
   async start(input) {
+    if (input === 'help') {
+      return this.showHelpPage();
+    }
+
     try {
       const url = resolveUrl(input);
       const rawContent = await get(url);
-      const elements = parse(rawContent);
-      
-      const { width } = screen.getSize();
-      const lines = layout(elements, width);
+      this.renderRawContent(rawContent, input);
+    } catch (err) {
+      this.exitWithError(err.message);
+    }
+  }
 
-      const pageName = input.includes(':') ? input.split(':')[1] : input;
-      this.engine = new PagerEngine(lines, pageName);
-      
+  /**
+   * Displays the built-in help page.
+   */
+  showHelpPage() {
+    this.renderRawContent(helpContent, 'help');
+  }
+
+  /**
+   * Renders raw .mn content and initializes the pager.
+   * @param {string} rawContent 
+   * @param {string} pageName 
+   */
+  renderRawContent(rawContent, pageName) {
+    this.currentElements = parse(rawContent);
+    const { width } = screen.getSize();
+    const lines = layout(this.currentElements, width);
+
+    const displayName = pageName.includes(':') ? pageName.split(':')[1] : pageName;
+
+    if (this.engine) {
+      this.engine.lines = lines;
+      this.engine.pageName = displayName;
+      this.engine.scrollPos = 0;
+      this.engine.draw();
+    } else {
+      this.engine = new PagerEngine(lines, displayName);
       screen.enter();
       this.engine.draw();
 
       initKeys((str, key) => {
-        handleInput(this.engine, key, () => this.quit());
+        handleInput(this.engine, key, () => this.quit(), () => this.showHelpPage());
       });
 
-      // Cleanup on signals and exceptions to ensure terminal is restored
-      process.on('SIGINT', () => this.quit());
-      process.on('uncaughtException', (err) => this.exitWithError(err.message));
+      const signalHandler = () => this.quit();
+      process.on('SIGINT', signalHandler);
+      process.on('SIGTERM', signalHandler);
 
-      // Handle terminal resize
+      process.on('uncaughtException', (err) => {
+        this.exitWithError(err.message);
+      });
+
       process.stdout.on('resize', () => {
+        if (this.isQuitting) return;
         this.engine.updateSize();
-        // Re-layout might be needed if width changed
         const { width: newWidth } = screen.getSize();
-        const reLayoutLines = layout(elements, newWidth);
+        const reLayoutLines = layout(this.currentElements, newWidth);
         this.engine.lines = reLayoutLines;
         this.engine.draw();
       });
-
-    } catch (err) {
-      this.exitWithError(err.message);
     }
   }
 
@@ -63,6 +94,9 @@ export class MnuClient {
    * Quits the application cleanly.
    */
   quit() {
+    if (this.isQuitting) return;
+    this.isQuitting = true;
+    
     cleanupKeys();
     screen.restore();
     process.exit(0);
@@ -73,7 +107,9 @@ export class MnuClient {
    * @param {string} message 
    */
   exitWithError(message) {
-    // Ensure terminal is restored if we were in alternate buffer
+    if (this.isQuitting) return;
+    this.isQuitting = true;
+
     cleanupKeys();
     screen.restore();
     console.error(`\x1b[31mError:\x1b[0m ${message}`);
