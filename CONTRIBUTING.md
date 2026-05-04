@@ -34,6 +34,15 @@ We expect a predictable and modular organization:
 
 Keep file names short, predictable, and focused on a single responsibility.
 
+## Technical Standards (Node.js Client)
+
+As a high-performance Node.js project, we maintain strict technical requirements:
+- **Runtime Performance**: Avoid synchronous file system or network operations within the pager's main loop. Use asynchronous primitives to keep the UI responsive.
+- **Portability**: Ensure code is compatible with Node.js >= 18.0.0 and works across Linux, Android (Termux), macOS, and Windows.
+- **Dependency Management**: Minimize external dependencies. Favor built-in Node.js modules (like `https`, `readline`, `os`) to keep the package lightweight and fast to install.
+- **Zero-Flicker Rendering**: All rendering updates must be batched into a single write operation to prevent visual flickering.
+- **ES Modules**: Use ES Module syntax (`import`/`export`) consistently.
+
 ## Commit Message Rules
 
 Use structured commit messages in the format: `type(scope): short summary`.
@@ -55,7 +64,8 @@ If you use AI to assist with code or documentation:
 ## Pull Request Checklist
 
 Before submitting a Pull Request, verify that:
-- [ ] The CLI still runs and behaves as expected.
+- [ ] The CLI still runs and behaves as expected on multiple platforms (Linux, Termux, macOS, Windows).
+- [ ] No synchronous I/O is used in the main render/input loop.
 - [ ] The code is readable, modular, and follows existing patterns.
 - [ ] The README remains helpful and playful.
 - [ ] Commit messages follow the `type(scope): summary` format.
@@ -63,6 +73,8 @@ Before submitting a Pull Request, verify that:
 ## Tone and Behavior
 
 We aim for a calm, direct, and welcoming environment. We are disciplined about our standards because they keep the project open and maintainable for everyone. 
+
+Please also review our [Terms of Use](./TERMS.md) regarding responsible use, privacy-preserving anonymous identifiers, and infrastructure safety.
 
 ## Closing
 

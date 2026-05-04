@@ -28,6 +28,12 @@ export function handleInput(engine, key, quit, showHelp) {
     case 'up':
       engine.scrollUp();
       break;
+    case 'd':
+      engine.scrollHalfPageDown();
+      break;
+    case 'u':
+      engine.scrollHalfPageUp();
+      break;
   }
 
   // Handle 'G' (Shift+g)

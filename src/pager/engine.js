@@ -36,6 +36,16 @@ export class PagerEngine {
     if (oldPos !== this.scrollPos) this.draw();
   }
 
+  scrollHalfPageDown() {
+    const n = Math.floor(this.size.height / 2);
+    this.scrollDown(n);
+  }
+
+  scrollHalfPageUp() {
+    const n = Math.floor(this.size.height / 2);
+    this.scrollUp(n);
+  }
+
   scrollToTop() {
     if (this.scrollPos === 0) return;
     this.scrollPos = 0;
@@ -50,25 +60,32 @@ export class PagerEngine {
   }
 
   /**
-   * Renders the viewport by explicitly positioning each line.
-   * This is the most stable method and prevents "doubling" artifacts.
+   * Renders the viewport using a single batch write to prevent flicker.
+   * Replicates the C client's RenderBuf logic.
    */
   draw() {
     const viewportHeight = this.size.height - 1;
     const visibleLines = this.lines.slice(this.scrollPos, this.scrollPos + viewportHeight);
     
-    // Clear screen once before drawing lines
-    screen.clear();
+    let buffer = '\x1b[?25l\x1b[H'; // Hide cursor and move to (1,1)
 
     for (let i = 0; i < viewportHeight; i++) {
       const line = visibleLines[i];
       if (line !== undefined) {
-        screen.moveCursor(i + 1, 1);
-        // \x1b[K clears to end of line to prevent ghosting
-        process.stdout.write(line + '\x1b[K');
+        // Line exists, append it and clear to end of line
+        buffer += line + '\x1b[K\r\n';
+      } else {
+        // Line doesn't exist (past end of document), just clear line
+        buffer += '\x1b[K\r\n';
       }
     }
 
-    renderFooter(this.size.width, this.size.height, this.pageName);
+    // Move to the last row for the footer
+    buffer += `\x1b[${this.size.height};1H`;
+    
+    process.stdout.write(buffer);
+
+    // Render the footer (it will do its own write, but we could also buffer it)
+    renderFooter(this.size.width, this.size.height, this.pageName, this.scrollPos, this.lines.length);
   }
 }

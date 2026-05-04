@@ -10,25 +10,35 @@ import { renderText } from './text.js';
  * @param {number} width 
  * @returns {string[]}
  */
-export function layout(elements, width) {
-  let lines = [];
+export function layout(elements, termWidth) {
+  // Respect the 80-character maximum content width, centered
+  const contentWidth = termWidth > 80 ? 80 : termWidth;
+  const basePaddingSize = Math.floor((termWidth - contentWidth) / 2);
+  const basePadding = ' '.repeat(basePaddingSize);
+
+  const lines = [];
 
   for (const element of elements) {
+    let elementLines = [];
     switch (element.type) {
       case 'TITLE':
-        lines = lines.concat(renderTitle(element.content, width));
+        elementLines = renderTitle(element.content, contentWidth);
         break;
       case 'DIV':
-        // Add a blank line before DIV if not the first element
-        if (lines.length > 0) lines.push('');
-        lines = lines.concat(renderDiv(element.content, width));
+        if (lines.length > 0) lines.push(basePadding); // Add blank line with padding
+        elementLines = renderDiv(element.content, contentWidth);
         break;
       case 'TEXT':
-        lines = lines.concat(renderText(element.content, width));
+        elementLines = renderText(element.content, contentWidth);
         break;
       case 'SPACE':
-        lines.push('');
+        elementLines = [''];
         break;
+    }
+    
+    // Apply base padding to each line of the element
+    for (let i = 0; i < elementLines.length; i++) {
+      lines.push(basePadding + elementLines[i]);
     }
   }
 

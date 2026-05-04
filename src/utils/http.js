@@ -1,6 +1,15 @@
 'use strict';
 
 import https from 'https';
+import { getAnonymousId } from './identity.js';
+import { readFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const pkgPath = join(__dirname, '../../package.json');
+const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
+const VERSION = pkg.version;
 
 /**
  * Simple HTTP GET wrapper using built-in https module
@@ -8,9 +17,10 @@ import https from 'https';
  * @returns {Promise<string>}
  */
 export function get(url) {
+  const anonId = getAnonymousId();
   const options = {
     headers: {
-      'User-Agent': 'mnu-nodejs-client'
+      'User-Agent': `mnu-nodejs-client/${VERSION} (ID/${anonId})`
     }
   };
 

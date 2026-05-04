@@ -7,13 +7,35 @@ import { screen } from '../terminal/screen.js';
  * @param {number} width 
  * @param {number} height 
  * @param {string} pageName
+ * @param {number} scrollPos
+ * @param {number} totalLines
  */
-export function renderFooter(width, height, pageName) {
+export function renderFooter(width, height, pageName, scrollPos, totalLines) {
   screen.moveCursor(height, 1);
-  // White status bar: \x1b[47m (white bg), \x1b[30m (black fg)
-  let text = ` MNU Pages: ${pageName} (q to quit)`;
-  if (text.length > width) {
-    text = text.substring(0, width);
+  
+  // Use Inverted mode (7) for the status bar, matching the C client
+  process.stdout.write('\x1b[7m');
+
+  const viewportHeight = height - 1;
+  const maxScroll = Math.max(0, totalLines - viewportHeight);
+  
+  let posIndicator = '(MID)';
+  if (maxScroll <= 0) posIndicator = '(ALL)';
+  else if (scrollPos === 0) posIndicator = '(TOP)';
+  else if (scrollPos >= maxScroll) posIndicator = '(END)';
+
+  const leftText = ` MNU Pages: ${pageName} (q to quit) `;
+  const rightText = `${posIndicator} `;
+  
+  const availableSpace = width - leftText.length - rightText.length;
+
+  if (availableSpace < 0) {
+    // Fallback for small screens
+    let text = ` ${pageName} ${posIndicator} `;
+    process.stdout.write(text.padEnd(width).substring(0, width));
+  } else {
+    process.stdout.write(leftText + ' '.repeat(availableSpace) + rightText);
   }
-  process.stdout.write('\x1b[47;30m' + text.padEnd(width) + '\x1b[0m');
+
+  process.stdout.write('\x1b[0m');
 }

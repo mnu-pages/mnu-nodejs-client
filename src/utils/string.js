@@ -1,7 +1,6 @@
 'use strict';
 
 const ANSI_REGEX = /\x1b\[[0-9;]*m/g;
-const TOKEN_REGEX = /(\x1b\[[0-9;]*m)|(.)/gs;
 
 /**
  * Strips ANSI escape codes from a string to get its visible length.
@@ -14,7 +13,6 @@ export function stripAnsi(text) {
 
 /**
  * Wraps text to a specific width, accounting for ANSI escape codes and long words.
- * Each line is guaranteed to be independent (starts with current style, ends with reset).
  * @param {string} text 
  * @param {number} width 
  * @returns {string[]}
@@ -22,71 +20,75 @@ export function stripAnsi(text) {
 export function wrapText(text, width) {
   if (width <= 0) return [text];
 
-  const tokens = [];
-  let match;
-  // Reset regex index for global match
-  TOKEN_REGEX.lastIndex = 0;
-  while ((match = TOKEN_REGEX.exec(text)) !== null) {
-    tokens.push({
-      value: match[0],
-      isAnsi: !!match[1],
-      isSpace: match[2] === ' '
-    });
-  }
-
   const lines = [];
   let currentLineText = '';
   let currentVisibleLength = 0;
   let activeStyle = '';
-  
-  let startTokenIndex = 0;
-  let lastSpaceTokenIndex = -1;
 
-  for (let i = 0; i < tokens.length; i++) {
-    const token = tokens[i];
+  // Simple tokenization: split by spaces but preserve them as tokens,
+  // and handle ANSI codes as zero-width tokens.
+  const parts = text.split(/(\x1b\[[0-9;]*m|\s+)/g).filter(p => p !== undefined && p !== '');
 
-    if (token.isAnsi) {
-      activeStyle = (token.value === '\x1b[0m') ? '' : token.value;
-      currentLineText += token.value;
+  for (const part of parts) {
+    if (part.match(ANSI_REGEX)) {
+      activeStyle = (part === '\x1b[0m') ? '' : part;
+      currentLineText += part;
       continue;
     }
 
-    if (currentVisibleLength >= width) {
-      if (lastSpaceTokenIndex !== -1 && !token.isSpace) {
-        let line = '';
-        let lineStyle = '';
-        for (let j = startTokenIndex; j <= lastSpaceTokenIndex; j++) {
-          const t = tokens[j];
-          line += t.value;
-          if (t.isAnsi) {
-            lineStyle = (t.value === '\x1b[0m') ? '' : t.value;
+    if (part.match(/^\s+$/)) {
+      // It's whitespace
+      if (currentVisibleLength + part.length > width) {
+        // Space doesn't fit, just start new line without the space
+        lines.push(currentLineText + '\x1b[0m');
+        currentLineText = activeStyle;
+        currentVisibleLength = 0;
+      } else {
+        currentLineText += part;
+        currentVisibleLength += part.length;
+      }
+      continue;
+    }
+
+    // It's a word
+    if (currentVisibleLength + part.length > width) {
+      if (part.length > width) {
+        // Word itself is longer than width, must force split it
+        let remainingWord = part;
+        while (remainingWord.length > 0) {
+          const spaceLeft = width - currentVisibleLength;
+          if (spaceLeft <= 0) {
+            lines.push(currentLineText + '\x1b[0m');
+            currentLineText = activeStyle;
+            currentVisibleLength = 0;
+            continue;
+          }
+          const chunk = remainingWord.substring(0, spaceLeft);
+          currentLineText += chunk;
+          currentVisibleLength += chunk.length;
+          remainingWord = remainingWord.substring(spaceLeft);
+          
+          if (currentVisibleLength >= width) {
+            lines.push(currentLineText + '\x1b[0m');
+            currentLineText = activeStyle;
+            currentVisibleLength = 0;
           }
         }
-        lines.push(line + '\x1b[0m');
-        
-        i = lastSpaceTokenIndex;
-        startTokenIndex = i + 1;
-        currentLineText = lineStyle;
-        currentVisibleLength = 0;
-        activeStyle = lineStyle;
-        lastSpaceTokenIndex = -1;
       } else {
-        lines.push(currentLineText + '\x1b[0m');
-        currentLineText = activeStyle + token.value;
-        currentVisibleLength = 1;
-        startTokenIndex = i;
-        lastSpaceTokenIndex = -1;
+        // Word doesn't fit on this line, start a new one
+        if (currentVisibleLength > 0) {
+          lines.push(currentLineText + '\x1b[0m');
+        }
+        currentLineText = activeStyle + part;
+        currentVisibleLength = part.length;
       }
     } else {
-      if (token.isSpace) {
-        lastSpaceTokenIndex = i;
-      }
-      currentLineText += token.value;
-      currentVisibleLength++;
+      currentLineText += part;
+      currentVisibleLength += part.length;
     }
   }
 
-  if (currentLineText && stripAnsi(currentLineText).trim() !== '') {
+  if (stripAnsi(currentLineText).trim() !== '') {
     lines.push(currentLineText + '\x1b[0m');
   }
 

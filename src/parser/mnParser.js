@@ -14,17 +14,23 @@ export function parse(rawContent) {
     const rawLine = lines[i];
     const trimmedLine = rawLine.trim();
 
-    if (trimmedLine.startsWith('.TITLE "')) {
-      const match = trimmedLine.match(/^\.TITLE\s+"([^"]+)"/);
+    if (trimmedLine.startsWith('.TITLE')) {
+      const match = trimmedLine.match(/^\.TITLE\s+"([^"]*)"/i);
       if (match) {
         document.push({ type: 'TITLE', content: match[1] });
+        continue;
       }
-    } else if (trimmedLine.startsWith('.DIV "')) {
-      const match = trimmedLine.match(/^\.DIV\s+"([^"]+)"/);
+    } 
+    
+    if (trimmedLine.startsWith('.DIV')) {
+      const match = trimmedLine.match(/^\.DIV\s+"([^"]*)"/i);
       if (match) {
         document.push({ type: 'DIV', content: match[1] });
+        continue;
       }
-    } else if (trimmedLine === '') {
+    }
+
+    if (trimmedLine === '') {
       // Add a SPACE if the previous element wasn't already a SPACE
       if (document.length > 0 && document[document.length - 1].type !== 'SPACE') {
         document.push({ type: 'SPACE', content: '' });

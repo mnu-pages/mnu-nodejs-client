@@ -5,6 +5,8 @@ export const helpContent = `.TITLE "mnu help"
 .DIV "NAVIGATION"
 j, ArrowDown : Scroll down
 k, ArrowUp   : Scroll up
+d            : Half page down
+u            : Half page up
 g            : Go to top
 G            : Go to bottom
 q            : Quit viewer
